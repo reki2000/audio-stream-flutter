@@ -1,3 +1,6 @@
+## 0.1.5
+* bump miniaudio version to 0.11.21
+
 ## 0.1.4
 
 * bump miniaudio version
