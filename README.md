@@ -21,7 +21,7 @@ flutter pub add mp_audio_stream
 import 'dart:math' as math;
 import 'dart:async';
 import 'dart:typed_data';
-
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:mp_audio_stream/mp_audio_stream.dart';
 
 void main() async {
@@ -34,10 +34,10 @@ void main() async {
   int stereo = 2;
   audioStream.init(channels: stereo); //Call this from Flutter's State.init() method
 
-  const rate = 44100; //for web this works well: rate = kIsWeb ? 8000 : 44100; and import 'package:flutter/foundation.dart' show kIsWeb;
+  const rate = kIsWeb ? 8000 : 44100;
   const freqL = 440;
   const freqR = 660;
-  Float32List samples = Float32List(3072); //3072 is arbitrary but works well
+  Float32List samples = kIsWeb ? Float32List(3072) : Float32List(8500) // arbitrary, but work nicely
 
   audioStream.resume(); //For the web, call this before before calling push(..)
   final int microseconds = (1000000 * samples.length / (rate * stereo)).floor();
