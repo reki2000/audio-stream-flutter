@@ -33,21 +33,28 @@ void main() async {
   //                      int sampleRate = 44100}
   audioStream.init(channels: 2); //Call this from Flutter's State.initState() method
 
+  //For web platform, call this after user interaction
+  audioStream.resume(); 
+
+  // generating a stereo sine-wave PCM stream
   const rate = 44100;
   const freqL = 440;
   const freqR = 660;
   const dur = 10;
-  Float32List samples = Float32List(rate);
 
-  audioStream.resume(); //For the web, call this after user interaction
+  Float32List samples = Float32List(rate);
 
   for (var t = 0; t < dur; t++) {
     int pos = 0;
+
     for (var i = 0; i < rate; i++) {
       samples[pos++] = math.sin(2 * math.pi * ((i * freqL) % rate) / rate);
       samples[pos++] = math.sin(2 * math.pi * ((i * freqR) % rate) / rate);
+
       if (pos == samples.length) {
         pos = 0;
+
+        // playback the generated PCM stream
         audioStream.push(samples);
       }
     }
@@ -56,8 +63,19 @@ void main() async {
     }
   }
 
-  audioStream.uninit(); //Call this from Flutter's State.dispose()
+  //Call this from Flutter's State.dispose()\
+  audioStream.uninit(); 
 }
 ```
 
 For more API Documents, visit [pub.dev](https://pub.dev/packages/mp_audio_stream).
+
+A runnable Flutter exapmle application is at `/example/`.
+
+# For developers
+
+Update miniaudio submodule after git clone.
+
+```
+git submodule update --init
+```
