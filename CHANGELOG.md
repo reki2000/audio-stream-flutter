@@ -1,3 +1,6 @@
+## 0.2.1
+- android: fix build error for namespace
+
 ## 0.2.0
 - migrate to dart:js_interop and package:web from legacy dart:js and dart:html
 
