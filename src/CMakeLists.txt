@@ -15,3 +15,8 @@ set_target_properties(mp_audio_stream PROPERTIES
 )
 
 target_compile_definitions(mp_audio_stream PUBLIC DART_SHARED_LIB)
+
+if (ANDROID)
+  # Support Android 15 16k page size.
+  target_link_options(mp_audio_stream PRIVATE "-Wl,-z,max-page-size=16384")
+endif()

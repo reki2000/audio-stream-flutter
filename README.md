@@ -70,11 +70,11 @@ void main() async {
 
 For more API Documents, visit [pub.dev](https://pub.dev/packages/mp_audio_stream).
 
-A runnable Flutter exapmle application is at `/example/`.
+A runnable Flutter example application is at `/example/`.
 
 # For developers
 
-Update miniaudio submodule after git clone.
+Update miniaudio submodule after `git clone`.
 
 ```
 git submodule update --init
