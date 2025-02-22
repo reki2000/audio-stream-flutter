@@ -1,3 +1,6 @@
+## 0.2.2
+- web: fix 404 for audio_steram.js when deployed with --base-href
+
 ## 0.2.1
 - android: fix build error for namespace
 

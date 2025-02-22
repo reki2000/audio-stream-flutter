@@ -44,7 +44,7 @@ class AudioStreamImpl extends mpaudio.AudioStream {
 
   AudioStreamImpl() {
     final scriptTag = document.createElement('script') as HTMLScriptElement;
-    scriptTag.src = "/assets/packages/mp_audio_stream/js/audio_stream.js";
+    scriptTag.src = "assets/packages/mp_audio_stream/js/audio_stream.js";
     document.head?.append(scriptTag);
   }
 
