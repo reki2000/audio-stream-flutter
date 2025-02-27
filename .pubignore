@@ -1,3 +1,5 @@
 src/miniaudio/*
 !src/miniaudio/miniaudio.h
 !src/miniaudio/LICENSE
+example
+

@@ -44,7 +44,7 @@ void main() {
       bufferMilliSec: 200,
       waitingBufferMilliSec:
           0); //Call this from Flutter's State.initState() method
-  
+
   audioStream.resume(); //For the web, call this after user interaction
 
   stopwatch.reset();
@@ -84,3 +84,13 @@ class MyApp extends StatelessWidget {
 ```
 
 For more API Documents, visit [pub.dev](https://pub.dev/packages/mp_audio_stream).
+
+A runnable Flutter example application is at `/example/`.
+
+# For developers
+
+Update miniaudio submodule after `git clone`.
+
+```
+git submodule update --init
+```

@@ -1,10 +1,8 @@
 /// A multi-platform audio stream output library for real-time generated wave data
-library audio_stream;
-
 import 'dart:typed_data';
 
 import 'src/mp_audio_stream_mastream.dart'
-    if (dart.library.html) 'src/mp_audio_stream_web.dart';
+    if (dart.library.js_interop) 'src/mp_audio_stream_web.dart';
 
 /// Contol class for AudioStream. Use `getAudioStream()` to get its instance.
 abstract class AudioStream {

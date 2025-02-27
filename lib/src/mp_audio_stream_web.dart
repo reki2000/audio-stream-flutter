@@ -1,31 +1,51 @@
 import 'dart:async';
-import 'dart:js' as js;
-import 'dart:html' as html;
+import 'dart:js_interop';
 import 'dart:typed_data';
 
-import 'package:flutter/services.dart';
+import 'package:web/web.dart' show document, HTMLScriptElement;
 
-import '../mp_audio_stream.dart';
+import '../mp_audio_stream.dart' as mpaudio;
 
-Future<String> _jsText() async =>
-    await rootBundle.loadString('packages/mp_audio_stream/js/audio_stream.js');
+extension type JSAudioStream(JSObject _) implements JSObject {
+  external void init(
+      int bufferLength, int waitingBufferLength, int channels, int sampleRate);
+  external void uninit();
+  external void resume();
+  external void push(JSFloat32Array buf);
+  external JSAudioStreamStat get stat;
+  external void resetStat();
+}
+
+extension type JSAudioStreamStat(JSObject _) implements JSObject {
+  external int get fullCount;
+  external int get exhaustCount;
+}
+
+@JS("AudioStream")
+external JSAudioStream? get _stream;
 
 /// Contol class for AudioStream on web platform. Use `getAudioStream()` to get its instance.
-class AudioStreamImpl extends AudioStream {
-  final _streamCompleter = Completer<js.JsObject>();
-  js.JsObject? _stream;
+class AudioStreamImpl extends mpaudio.AudioStream {
+  int channels = 1;
 
-  AudioStreamImpl() {
+  void delay(Function(JSAudioStream) fn) {
+    if (_stream != null) {
+      fn(_stream!);
+      return;
+    }
+
     (() async {
-      final scriptTag = html.ScriptElement()..text = await _jsText();
-      html.document.head?.children.add(scriptTag);
-      _stream = js.context['AudioStream'];
-      _streamCompleter.complete(_stream);
+      while (_stream == null) {
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+      fn(_stream!);
     })();
   }
 
-  void _callLater(String method, List args) {
-    _streamCompleter.future.then((s) => s.callMethod(method, args));
+  AudioStreamImpl() {
+    final scriptTag = document.createElement('script') as HTMLScriptElement;
+    scriptTag.src = "assets/packages/mp_audio_stream/js/audio_stream.js";
+    document.head?.append(scriptTag);
   }
 
   @override
@@ -34,45 +54,45 @@ class AudioStreamImpl extends AudioStream {
       int waitingBufferMilliSec = 100,
       int channels = 1,
       int sampleRate = 44100}) {
-    _callLater('init', [
-      channels * bufferMilliSec * sampleRate / 1000,
-      channels * waitingBufferMilliSec * sampleRate / 1000,
-      channels,
-      sampleRate
-    ]);
+    this.channels = channels;
+    delay((s) => s.init(
+        channels * (bufferMilliSec * sampleRate ~/ 1000),
+        channels * (waitingBufferMilliSec * sampleRate ~/ 1000),
+        channels,
+        sampleRate));
     return 0;
   }
 
   @override
   void uninit() {
-    _callLater('uninit', []);
+    delay((s) => s.uninit());
   }
 
   @override
   void resume() {
-    _callLater('resume', []);
+    delay((s) => s.resume());
   }
 
   @override
   int push(Float32List buf) {
-    _stream?.callMethod('push', [buf]);
+    if (buf.length % channels != 0) {
+      return -1;
+    }
+    delay((s) => s.push(buf.toJS));
     return 0;
   }
 
   @override
-  AudioStreamStat stat() {
-    if (_stream != null) {
-      final statJsObj = _stream!['stat'];
-      final fullCount = statJsObj['fullCount'];
-      final exhaustCount = statJsObj['exhaustCount'];
-      return AudioStreamStat(full: fullCount, exhaust: exhaustCount);
-    } else {
-      return AudioStreamStat.empty();
-    }
+  mpaudio.AudioStreamStat stat() {
+    if (_stream == null) return mpaudio.AudioStreamStat.empty();
+
+    final statJsObj = _stream!.stat;
+    return mpaudio.AudioStreamStat(
+        full: statJsObj.fullCount, exhaust: statJsObj.exhaustCount);
   }
 
   @override
   void resetStat() {
-    _stream?.callMethod('resetStat', []);
+    delay((s) => s.resetStat());
   }
 }

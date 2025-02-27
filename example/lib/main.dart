@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-
 import 'package:mp_audio_stream/mp_audio_stream.dart';
 
 void main() {
@@ -36,6 +35,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  static const sampleRate = 11025;
+
   late final AudioStream audioStream;
 
   AudioStreamStat stat = AudioStreamStat.empty();
@@ -46,7 +47,11 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     audioStream = getAudioStream();
-    audioStream.init(bufferMilliSec: 1000, waitingBufferMilliSec: 100);
+    audioStream.init(
+        sampleRate: sampleRate,
+        channels: 1,
+        bufferMilliSec: 1000,
+        waitingBufferMilliSec: 100);
   }
 
   @override
@@ -55,52 +60,13 @@ class _MyHomePageState extends State<MyHomePage> {
     super.dispose();
   }
 
-  static Float32List _synthSineWave(double freq, int rate, Duration duration) {
-    final length = duration.inMilliseconds * rate ~/ 1000;
-
-    final fadeSamples = math.min(100, length ~/ 2);
-
-    final sineWave = List.generate(length, (i) {
-      final amp = math.sin(2 * math.pi * ((i * freq) % rate) / rate);
-
-      // apply fade in/out to avoid click noise
-      final volume = (i > length - fadeSamples)
-          ? (length - i - 1) / fadeSamples
-          : (i < fadeSamples)
-              ? i / fadeSamples
-              : 1.0;
-
-      return amp * volume;
-    });
+  static Float32List _synthSineWave(
+      double freq, int sampleRate, Duration duration) {
+    final length = duration.inMilliseconds * sampleRate ~/ 1000;
+    final sineWave = List.generate(length,
+        (i) => math.sin(2 * math.pi * ((i * freq) % sampleRate) / sampleRate));
 
     return Float32List.fromList(sineWave);
-  }
-
-  Future<void> _playNote(double freq, Duration duration) async {
-    const hz = 60;
-    const rate = 44100;
-    const step = rate ~/ hz;
-
-    final wave = _synthSineWave(freq, rate, duration);
-
-    final completer = Completer();
-
-    // divides given wave data into pieces by specified frequency(hz),
-    // then pushes them to the audio stream
-    int pos = 0;
-    Timer.periodic(const Duration(milliseconds: 1000 ~/ hz), (t) {
-      audioStream.push(wave.sublist(pos, pos + step));
-
-      setState(() => stat = audioStream.stat());
-
-      pos += step;
-      if (pos >= wave.length) {
-        t.cancel();
-        completer.complete();
-      }
-    });
-
-    await completer.future;
   }
 
   void _onPressed() async {
@@ -109,8 +75,20 @@ class _MyHomePageState extends State<MyHomePage> {
     // for web, calling `resume()` from user-action is needed
     audioStream.resume();
 
-    for (double freq in [261.626, 293.665, 329.628]) {
-      await _playNote(freq, const Duration(seconds: 1));
+    const noteDuration = Duration(seconds: 1);
+    const pushFreq = 60; // Hz
+
+    for (double noteFreq in [261.626, 293.665, 329.628]) {
+      final wave = _synthSineWave(noteFreq, sampleRate, noteDuration);
+
+      // push wave data to audio stream in specified interval (pushFreq)
+      const step = sampleRate ~/ pushFreq;
+      for (int pos = 0; pos < wave.length; pos += step) {
+        audioStream.push(wave.sublist(pos, math.min(wave.length, pos + step)));
+
+        setState(() => stat = audioStream.stat());
+        await Future.delayed(noteDuration ~/ pushFreq);
+      }
     }
 
     setState(() => _isPlaying = false);
