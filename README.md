@@ -22,50 +22,65 @@ import 'dart:math' as math;
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:flutter/material.dart';
 import 'package:mp_audio_stream/mp_audio_stream.dart';
 
-void main() async {
+void main() {
   final audioStream = getAudioStream();
-
-  //default init params: {int bufferMilliSec = 3000,
-  //                      int waitingBufferMilliSec = 100,
-  //                      int channels = 1,
-  //                      int sampleRate = 44100}
-  audioStream.init(channels: 2); //Call this from Flutter's State.initState() method
-
-  //For web platform, call this after user interaction
-  audioStream.resume(); 
-
-  // generating a stereo sine-wave PCM stream
   const rate = 44100;
+  const channels = 2;
   const freqL = 440;
   const freqR = 660;
-  const dur = 10;
+  int inc = 0;
+  final Stopwatch stopwatch = Stopwatch();
 
-  Float32List samples = Float32List(rate);
+//default init params: {int bufferMilliSec = 3000,
+//                      int waitingBufferMilliSec = 100,
+//                      int channels = 1,
+//                      int sampleRate = 44100}
+  audioStream.init(
+      sampleRate: rate,
+      channels: channels,
+      bufferMilliSec: 200,
+      waitingBufferMilliSec:
+          0); //Call this from Flutter's State.initState() method
 
-  for (var t = 0; t < dur; t++) {
-    int pos = 0;
+  audioStream.resume(); //For the web, call this after user interaction
 
-    for (var i = 0; i < rate; i++) {
-      samples[pos++] = math.sin(2 * math.pi * ((i * freqL) % rate) / rate);
-      samples[pos++] = math.sin(2 * math.pi * ((i * freqR) % rate) / rate);
+  stopwatch.reset();
+  stopwatch.start();
 
-      if (pos == samples.length) {
-        pos = 0;
-
-        // playback the generated PCM stream
-        audioStream.push(samples);
-      }
+  Timer.periodic(Duration(milliseconds: 100), (timer) {
+    List<double> samples = [];
+    for (;
+        samples.length <
+            ((stopwatch.elapsedMicroseconds) / 1000000 * rate * channels)
+                .round();
+        inc++) {
+      samples.add(math.sin(2 * math.pi * ((inc * freqL) % rate) / rate));
+      samples.add(math.sin(2 * math.pi * ((inc * freqR) % rate) / rate));
     }
-    if (t > 0) {
-      await Future.delayed(const Duration(seconds: 1));
-    }
-  }
+    stopwatch.reset();
+    audioStream.push(Float32List.fromList(samples));
+  });
 
-  //Call this from Flutter's State.dispose()\
-  audioStream.uninit(); 
+  runApp(const MyApp());
 }
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Hello, Sine Waves',
+      home: Scaffold(
+        appBar: AppBar(title: const Text('Hello, Sine Waves')),
+      ),
+    );
+  }
+}
+// audioStream.uninit(); //Call this from Flutter's State.dispose()
 ```
 
 For more API Documents, visit [pub.dev](https://pub.dev/packages/mp_audio_stream).
